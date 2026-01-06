@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: s3
+  namespace: {{.Values.namespace}}
+spec:
+  type: NodePort
+  selector:
+    service: storage
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 4572
+    # newly added
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: {{.Values.namespace}}
+  labels:
+    component: elasticsearch
+spec:
+  selector:
+    service: storage
+  ports:
+  - name: http
+    port: 9200
+    targetPort: 4571
+    protocol: TCP
+    # newly added
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: storage
+  namespace: {{.Values.namespace}}
+spec:
+  serviceName: storage
+  replicas: 1
+  selector: 
+    matchLabels: 
+      app: storage
+  template:
+    metadata:
+      labels:
+        app: storage
+        service: storage
+    spec:
+      volumes:
+        - name: localstack-pv-volume
+          persistentVolumeClaim:
+#            claimName: localstack-pvc-{{.Values.namespace}}
+            claimName: localstack-pvc-{{.Values.namespace}}
+        - name: timezone-volume
+          hostPath:
+            path: /usr/share/zoneinfo/Asia/Shanghai
+            type: File
+      containers:
+        - name: storage
+#          image: localstack/localstack:0.8.6
+#          image: localstack_new:0.0.1
+          image: {{.Values.image.registry}}:localstack-latest
+{{ if .Values.image.pullPolicy }}
+          imagePullPolicy: {{.Values.image.pullPolicy}}
+{{ end }}
+          env:
+          - name: SERVICES
+            value: s3,elasticsearch
+          - name: DEBUG
+            value: "1"
+          - name: DATA_DIR
+            value: "/tmp/localstack/data"
+          ports:
+          - containerPort: 4572
+            protocol: TCP
+          - containerPort: 4571
+            protocol: TCP
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+          volumeMounts:
+            - mountPath: "/tmp/localstack/data"
+              name: localstack-pv-volume
+            - name: timezone-volume
+              mountPath: /etc/localtime
+      imagePullSecrets:
+      - name: hubsecret     
+      nodeSelector:
+        {{range $key,$val := .Values.platformNodeSelectors}}
+          {{$key}}: {{$val}}
+        {{end}}

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: controlcenter-go
+  namespace: {{.Values.namespace}}
+spec:
+  selector:
+    app: controlcenter-go
+  type: {{.Values.cc.service.type}}
+  ports:
+  - protocol: TCP
+    port: {{.Values.cc.service.port}}
+    targetPort: {{.Values.cc.service.targetPort}}
+    name: http
+  - protocol: TCP
+    port: {{.Values.cc.service.portHttps}}
+    targetPort: {{.Values.cc.service.targetPortHttps}}
+    name: https
+#  externalTrafficPolicy: Local

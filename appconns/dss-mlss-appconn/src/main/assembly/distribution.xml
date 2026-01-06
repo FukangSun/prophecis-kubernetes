@@ -1,0 +1,56 @@
+<assembly
+        xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/2.3"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/2.3 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+    <!-- 这里需保证 id 唯一 -->
+    <id>dss-mlss-appconn</id>
+    <formats>
+        <format>dir</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <!-- 具体的 AppConn 名 -->
+    <baseDirectory>mlss</baseDirectory>
+
+    <dependencySets>
+        <!-- 如果有 dependency，则需 lib 目录 -->
+        <dependencySet>
+            <outputDirectory>lib</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <useStrictFiltering>true</useStrictFiltering>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+        </dependencySet>
+    </dependencySets>
+
+    <fileSets>
+        <!-- 如果有 appconn.properties，则需 conf 目录 -->
+        <fileSet>
+            <directory>${basedir}/conf</directory>
+            <includes>
+                <include>*</include>
+            </includes>
+            <fileMode>0777</fileMode>
+            <outputDirectory>conf</outputDirectory>
+            <lineEnding>unix</lineEnding>
+        </fileSet>
+        <!-- 存放 init.sql -->
+        <fileSet>
+            <directory>${basedir}/src/main/resources</directory>
+            <includes>
+                <include>init.sql</include>
+            </includes>
+            <fileMode>0777</fileMode>
+            <outputDirectory>db</outputDirectory>
+        </fileSet>
+        <!-- 存放工作流节点的 icons -->
+        <fileSet>
+            <directory>${basedir}/src/main/icons</directory>
+            <includes>
+                <include>*</include>
+            </includes>
+            <fileMode>0777</fileMode>
+            <outputDirectory>icons</outputDirectory>
+        </fileSet>
+    </fileSets>
+</assembly>

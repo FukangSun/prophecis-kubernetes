@@ -1,0 +1,2203 @@
+#
+# Copyright 2017-2018 IBM Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+swagger: '2.0'
+info:
+  title: Prophecis Rest Service
+  description: |
+    Prophecis Rest Service
+  version: "1.0.0"
+host: di.prophecis.com
+schemes:
+  - https
+basePath: /
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  basicAuth:
+    type: basic
+    description: Basic Autentication credentials for using the API.
+  watsonAuthToken:
+    type: apiKey
+    in: header
+    name: X-Watson-Authorization-Token
+    description: Watson Developer Cloud Token Autentication. See [here](https://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/getting_started/gs-tokens.shtml) for more information
+  basicAuthToken:
+    type: apiKey
+    in: header
+    name: Authorization
+    description: Watson Developer Cloud Basic Autentication. See [here](https://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/getting_started/gs-tokens.shtml) for more information
+  watsonAuthTokenQuery:
+    type: apiKey
+    in: query
+    name: watson-token
+    description: Watson Developer Cloud Token Autentication. See [here](https://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/doc/getting_started/gs-tokens.shtml) for more information
+
+security: [ { basicAuthToken: [] }, { watsonAuthToken: [] }, { watsonAuthTokenQuery: [] } ]
+
+paths:
+  /di/v1/models:
+    post:
+      tags:
+        - Models
+      summary: Trains a new deep learning model.
+      description: |
+        Trains a deep neural network written in a DL framework supported by the DLaaS platform (such as Caffe, Tensorflow, etc.). The model code has to be uploaded and configuration parameters have to be provided.
+      operationId: postModel
+      consumes:
+        - multipart/form-data
+      produces:
+        - application/json
+      parameters:
+        - name: model_definition
+          in: formData
+          description: The deep learning model code as compressed archive (ZIP).
+          required: false
+          type: file
+        - name: manifest
+          in: formData
+          description: The manifest providing configuration for the deep learning model, the training data and the training execution.
+          required: true
+          type: file
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-02-13"
+      responses:
+        201:
+          description: Deep learning model successfully accepted.
+          schema:
+            $ref: "#/definitions/BasicNewModel"
+          headers:
+            Location:
+              description: Location header containing the model id.
+              type: string
+        400:
+          description: Error in the the model_definition or manifest.
+          schema:
+            $ref: '#/definitions/Error'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+    get:
+      tags:
+        - Models
+      summary: Get a list of available deep learning models.
+      description: |
+        Get a list of all available deep learning models and their configuration that a user can see.
+      operationId: listModels
+      parameters:
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-02-13"
+        - name: userid
+          in: query
+          description: owner's userid.
+          required: false
+          type: string
+          default: ""
+        - name: namespace
+          in: query
+          description: job's namespace.
+          required: false
+          type: string
+          default: ""
+        - name: page
+          in: query
+          description: page number.
+          required: false
+          type: string
+          default: "1"
+        - name: size
+          in: query
+          description: entity number per page.
+          required: false
+          type: string
+          default: "10"
+        - name: clusterName
+          in: query
+          description: entity clusterName
+          required: false
+          type: string
+          default: ""
+        - name: exp_id
+          in: query
+          description: experiment's id.
+          required: false
+          type: string
+          default: ""
+        - name: exp_run_id
+          in: query
+          description: experiment run's id.
+          required: false
+          type: string
+          default: ""
+      responses:
+        200:
+          description: List of deep learning models.
+          schema:
+            $ref: '#/definitions/ModelList'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+
+  /di/v1/models/{model_id}/kill:
+    get:
+      tags:
+        - Models
+      summary: Get detailed information about a model.
+      description: |
+        Get detailed information about a model such as training status.
+      parameters:
+        - name: model_id
+          in: path
+          description: The id of the model.
+          required: true
+          type: string
+      operationId: KillTrainingModel
+      responses:
+        200:
+          description: Detailed model and training information.
+          schema:
+            $ref: '#/definitions/Model'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model with the given ID not found.
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/models/{model_id}/retry:
+    get:
+      tags:
+        - Models
+      summary: Retry detailed information about a model.
+      description: |
+        Retry detailed information about a model such as training status.
+      parameters:
+        - name: model_id
+          in: path
+          description: The id of the model.
+          required: true
+          type: string
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-02-13"
+      operationId: retryModel
+      responses:
+        200:
+          description: Model repeat successfully.
+          schema:
+            $ref: '#/definitions/BasicModel'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The model cannot be found.
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/models/{model_id}:
+    get:
+      tags:
+        - Models
+      summary: Get detailed information about a model.
+      description: |
+        Get detailed information about a model such as training status.
+      parameters:
+        - name: model_id
+          in: path
+          description: The id of the model.
+          required: true
+          type: string
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-02-13"
+      operationId: getModel
+      responses:
+        200:
+          description: Detailed model and training information.
+          schema:
+            $ref: '#/definitions/Model'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model with the given ID not found.
+          schema:
+            $ref: '#/definitions/Error'
+    patch:
+      tags:
+        - Models
+      summary: Changes the status of the training progress.
+      description: Changes the status of the training progress to the given `status` value (currently `halt` only). Halt means the training will be stopped and the last snapshot will be stored and can be retrieved.
+      operationId: patchModel
+      parameters:
+        - name: model_id
+          in: path
+          description: The id of the model.
+          required: true
+          type: string
+        - name: payload
+          in: body
+          description: Currently accepts "halt" as the only valid value.
+          required: true
+          schema:
+            $ref: '#/definitions/TrainingUpdate'
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: true
+          type: string
+          default: "2017-02-13"
+      responses:
+        202:
+          description: Training successfully halted.
+          schema:
+            $ref: '#/definitions/BasicModel'
+        400:
+          description: Incorrect status specified.
+          schema:
+            $ref: '#/definitions/Error'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model with the given ID not found.
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - Models
+      summary: Deletes an existing model
+      description: |
+        Deletes an existing model. It does not delete any data in the user's data store.
+      parameters:
+        - name: model_id
+          description: The id of the model.
+          in: path
+          required: true
+          type: string
+          format: string
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-02-13"
+      operationId: deleteModel
+      responses:
+        200:
+          description: Model deleted successfully.
+          schema:
+            $ref: '#/definitions/BasicModel'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The model cannot be found.
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/models/{model_id}/export:
+    get:
+      tags:
+        - Models
+      summary: Export the model definition.
+      description: Export the model definition
+      operationId: exportModel
+      produces:
+        - application/octet-stream
+      parameters:
+        - name: model_id
+          description: The id of the model.
+          in: path
+          required: true
+          type: string
+          format: string
+      responses:
+        200:
+          description: Model definition
+          schema:
+            type: string
+            format: binary
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The model cannot be found.
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/models/{model_id}/definition:
+    get:
+      tags:
+        - Models
+      summary: Downloads the model definition.
+      description: Downloads the model definition that was initial used for training as ZIP archive.
+      operationId: downloadModelDefinition
+      produces:
+        - application/octet-stream
+      parameters:
+        - name: model_id
+          description: The id of the model.
+          in: path
+          required: true
+          type: string
+          format: string
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-02-13"
+      responses:
+        200:
+          description: Model definition
+          schema:
+            type: string
+            format: binary
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The model cannot be found.
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/models/{model_id}/trained_model:
+    get:
+      tags:
+        - Models
+      summary: Downloads the trained model.
+      description: Downloads the trained model as ZIP archive.
+      produces:
+        - application/octet-stream
+      operationId: downloadTrainedModel
+      parameters:
+        - name: model_id
+          description: The id of the model.
+          in: path
+          required: true
+          type: string
+          format: string
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-02-13"
+      responses:
+        200:
+          description: Model definition
+          schema:
+            type: string
+            format: binary
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The trained model cannot be found.
+          schema:
+            $ref: '#/definitions/Error'
+        410:
+          description: If the trained model storage time has expired and it has been deleted. It only gets deleted if it not stored on an external data store.
+          schema:
+            $ref: '#/definitions/Error'
+
+  /di/v1/models/{model_id}/logs:
+    get:
+      security: [] # disable basic auth b/c basic auth is not supported in the browser
+      tags:
+        - Models
+      summary: |
+        Get training logs as websocket stream.
+      description: |
+        Get training logs for the given model as websocket stream. Each message can contain one or more log lines.
+      produces:
+        - application/octet-stream
+      parameters:
+        - name: model_id
+          description: The id of the model.
+          in: path
+          required: true
+          type: string
+          format: string
+        - name: follow
+          description: Follow the log stream if true. Default false.
+          in: query
+          required: false
+          default: false
+          type: boolean
+          format: boolean
+        - name: since_time
+          description: An RFC3339 timestamp from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned.  If this value is in the future, no logs will be returned.
+          in: query
+          required: false
+          default: ""
+          type: string
+          format: string
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-02-13"
+      operationId: getLogs
+      responses:
+        200:
+          description: Dump of the training log to-date
+          schema:
+            type: string
+            format: binary
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The model cannot be found.
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/logs/{model_id}/loglines:
+    get:
+      summary: Get loglines, based on query
+      responses:
+        200:
+          description: "(streaming responses)"
+          schema:
+            "$ref": "#/definitions/v1LogLinesList"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+      operationId: getLoglines
+      parameters:
+        - name: model_id
+          description: The id of the model.
+          in: path
+          required: true
+          type: string
+          format: string
+        - name: searchType
+          in: query
+          required: false
+          type: string
+          enum:
+            - TERM
+            - NESTED
+            - MATCH
+          default: TERM
+        - name: since_time
+          description: 'Time from which to show logs. If this value precedes the time a pod was started,
+            only logs since the pod start will be returned.
+            If this value is in the future, no logs will be returned. If this value is a raw integer, it represents
+            the time that the metric occured: representing the number of milliseconds since midnight January 1, 1970.
+            If this value is a negative integer, it represents the number of lines to count backwards.
+            If this value is empty, the logs since the beginning of the job will be returned'
+          in: query
+          required: false
+          default: ""
+          type: string
+          format: string
+        - name: pagesize
+          description: 'Number of lines to output.'
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pos
+          description: 'If positive, line number from start, if negative line counting from end'
+          in: query
+          required: false
+          type: integer
+          format: int64
+        - name: version
+          in: query
+          description: The release date of the version of the API you want to use. Specify dates in YYYY-MM-DD format.
+          required: false
+          type: string
+          default: "2017-10-01"
+      tags:
+        - TrainingData
+
+
+  /di/v1/dashboards:
+    get:
+      summary: Get the dashboard belongs to a User
+      description: Get dashboard.
+      operationId: getDashboards
+      parameters:
+        - name: clusterName
+          in: query
+          description: entity clusterName
+          required: false
+          type: string
+          default: ""
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/GetDashboardsResponse'
+        403:
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The dashboard cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experiment:
+    post:
+      summary: createExperiment
+      tags:
+        - Experiments
+      description: Create Experiment.
+      operationId: createExperiment
+      parameters:
+        - in: body
+          name: experiment
+          description: The Experiment Request
+          required: true
+          schema:
+            $ref: '#/definitions/ProphecisExperimentRequest'
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperimentIDResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      summary: Update Experiment
+      description: Update Experiment Flow Json.
+      operationId: updateExperiment
+      tags:
+        - Experiments
+      parameters:
+        - in: body
+          name: experiment
+          description: The Experiment Put Request.
+          required: true
+          schema:
+            $ref: '#/definitions/ProphecisExperimentPutRequest'
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experiment/{id}/copy:
+    get:
+      summary: copyExperiment
+      tags:
+        - Experiments
+      description: Copy Experiment.
+      operationId: copyExperiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+          description: experiment id
+        - name: create_type
+          in: query
+          type: string
+          description: create type, include MLFLOW, DSS, WTSS
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperimentRequest'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experiment/{id}:
+    delete:
+      summary: Delete Experiment
+      description: Delete Experiment.
+      operationId: deleteExperiment
+      tags:
+        - Experiments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+          description: experiment id
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/BasicModel'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+    get:
+      summary: Get Experiment
+      description: Get Experiment By Experiment Id.
+      operationId: getExperiment
+      tags:
+        - Experiments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+          description: experiment id
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperimentGetResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      summary: Put Experiment Basic Info
+      description: Put Experiment Basic Info By Experiment Id.
+      operationId: updateExperimentInfo
+      tags:
+        - Experiments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+          description: experiment id
+        - name: experiment
+          in: body
+          schema:
+            $ref: '#/definitions/ProphecisExperimentPutBasicInfo'
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentTag:
+    post:
+      summary: createExperimentTag
+      tags:
+        - Experiments
+      description: Create Experiment Tag.
+      operationId: createExperimentTag
+      parameters:
+        - in: body
+          name: experimentTag
+          description: The Experiment Tag Request
+          required: true
+          schema:
+            $ref: '#/definitions/ProphecisExperimentTagPostRequest'
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperimentTag'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentTag/{id}:
+    delete:
+      summary: deleteExperimentTag
+      tags:
+        - Experiments
+      description: Delete Experiment Ta.
+      operationId: deleteExperimentTag
+      parameters:
+        - in: path
+          name: id
+          type: number
+          format: int64
+          description: The Experiment Request
+          required: true
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/codeUpload:
+    post:
+      summary: upload code to s3
+      description: upload code.zip to s3
+      operationId: codeUpload
+      tags:
+        - Experiments
+      consumes:
+        - multipart/form-data
+      produces:
+        - application/json
+      parameters:
+        - name: file
+          in: formData
+          required: true
+          type: file
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/CodeUploadResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Code ZIP upload failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experiments:
+    get:
+      summary: List Experiments by User.
+      description: List Experiments by User.
+      operationId: listExperiments
+      tags:
+        - Experiments
+      parameters:
+        - name: query_str
+          in: query
+          required: false
+          type: string
+        - name: username
+          in: query
+          type: string
+        - name: page
+          in: query
+          type: number
+          format: int64
+        - name: size
+          in: query
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperiments'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experiment/import:
+    post:
+      summary: import Zip To Create Experimetn.
+      description: import experiment.
+      operationId: importExperiment
+      tags:
+        - Experiments
+      consumes:
+        - multipart/form-data
+      produces:
+        - application/json
+      parameters:
+        - name: file
+          in: formData
+          required: true
+          type: file
+        - name: fileName
+          in: formData
+          required: false
+          type: string
+        - name: experimentId
+          in: formData
+          required: false
+          default: 0
+          type: number
+          format: int64
+          description: if experimentId is 0 or not provided, create experiment in db; if exists, get experiment by experimentId, update it.
+        - name: createType
+          in: formData
+          default: "MLFlow"
+          type: string
+          required: false
+          description: experiment type, default "MLFlow", choose next value, "WTSS" "DSS" "MLFlow"
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperimentIDResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experiment/{id}/export:
+    get:
+      tags:
+        - Experiments
+      summary: Export Experiment
+      description: export Experiment.
+      operationId: exportExperiment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+      responses:
+        200:
+          description: Model definition
+          schema:
+            type: string
+            format: binary
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Experiment cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experiment/{id}/exportdss:
+    get:
+      tags:
+        - Experiments
+      summary: Export Expriments(DSS)
+      description: export Experiment(DSS)
+      operationId: exportExperimentDss
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+      responses:
+        200:
+          description: Export Experiment(Dss) Response definition
+          schema:
+            $ref: "#/definitions/ProphecisExportExperimentDssResponse"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Experiment cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experiment/importdss:
+    post:
+      tags:
+        - Experiments
+      summary: Import Experiment(DSS)
+      description: import Experiment(DSS)
+      operationId: importExperimentDss
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: resourceId
+          in: formData
+          required: true
+          type: string
+        - name: version
+          in: formData
+          required: false
+          type: string
+        - name: desc
+          in: formData
+          required: false
+          type: string
+        - name: experimentId
+          in: formData
+          default: 0
+          type: number
+          format: int64
+          description: if experimentId is 0 or not provided, create experiment in db; if exists, get experiment by experimentId, update it.
+      responses:
+        200:
+          description: Import Experiment(Dss) Response definition
+          schema:
+            $ref: "#/definitions/ProphecisImportExperimentDssResponse"
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Experiment cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentRun/{exp_id}:
+    post:
+      summary: Run an Experiment Flow By Experiment Id.
+      description: Run an Experiment Flow By Experiment Id.
+      operationId: createExperimentRun
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: exp_id
+          in: path
+          required: true
+          type: number
+          format: int64
+        - name: experimentRunRequest
+          in: body
+          schema:
+            $ref: '#/definitions/ProphecisExperimentRunRequest'
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperimentRun'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentRun/{id}:
+    get:
+      summary: Get an Experiment Flow Exec Record By Experiment Id & Flow_Exec_ID.
+      description: Get an Experiment Flow Exec Record By Experiment Id & Flow_Exec_ID.
+      operationId: getExperimentRun
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperimentRunsGetResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Stop And Delete Experiment Exec Record By Experiment Id.
+      description: Stop And Delete Experiment Exec Record By Experiment Id.
+      operationId: deleteExperimentRun
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/BasicModel'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentRun/{id}/log:
+    get:
+      summary: Get Experiment Exec Log By Exec Id.
+      description: Get Experiment Exec Log By Exec Id.
+      operationId: getExperimentRunLog
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: number
+          format: int64
+        - name: from_line
+          in: query
+          type: number
+          format: int64
+          description: log from line number
+        - name: size
+          in: query
+          type: number
+          format: int64
+          description: get log size
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/job/{training_id}/log:
+    get:
+      summary: Get Job Log By Exec Id And Line.
+      description: Get Job Log By Exec Id And Line.
+      operationId: getJobLogByLine
+      tags:
+        - Models
+      parameters:
+        - name: training_id
+          in: path
+          required: true
+          type: string
+        - name: size
+          in: query
+          type: number
+          format: int64
+          required: true
+          description: log start line
+        - name: from
+          in: query
+          type: number
+          required: true
+          format: int64
+          description: log end line
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/LogResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentRun/{id}/kill:
+    get:
+      summary: Kill Experiment Run By Exec Id.
+      description: Kill Experiment Run By Exec Id.
+      operationId: killExperimentRun
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: id
+          in: path
+          description: The Experiment Run Id
+          required: true
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentRun/{id}/status:
+    get:
+      summary: Get ExperimentRun Status By Id.
+      description: Get ExperimentRun Status By Id.
+      operationId: getExperimentRunStatus
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: id
+          in: path
+          description: The Experiment Run Id
+          required: true
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ExperimentRunStatusResponse'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentRuns:
+    get:
+      summary: List ExperimentRuns.
+      description: List ExperimentRuns.
+      operationId: listExperimentRuns
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: query_str
+          in: query
+          required: false
+          type: string
+        - name: username
+          in: query
+          type: string
+        - name: page
+          in: query
+          type: number
+          format: int64
+        - name: size
+          in: query
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperimentRuns'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: The Models cannot be found
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentRunsHistory/{exp_id}:
+    get:
+      summary: ExperimentRun History
+      description: Get Experiment's ExperimentRun History
+      operationId: getExperimentRunsHistory
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: exp_id
+          in: path
+          required: true
+          type: number
+          format: int64
+        - name: query_str
+          in: query
+          required: false
+          type: string
+        - name: username
+          in: query
+          type: string
+        - name: page
+          in: query
+          type: number
+          format: int64
+        - name: size
+          in: query
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/ProphecisExperiments'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Get ExperimentRun's History Failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentRun/{exec_id}/execution:
+    get:
+      summary: Linkis Execution Method.
+      description: Get Flow Execution Msg From /api/entrance/${exec_id}/execution
+      operationId: getExperimentRunExecution
+      tags:
+        - ExperimentRuns
+      parameters:
+        - name: exec_id
+          in: path
+          required: true
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentJob/{linkis_task_id}/log:
+    get:
+      summary: Get Linkis Execution Log.
+      description: Get Flow Execution Msg From /api/entrance/${exec_id}/log
+      operationId: getLinkisJobLog
+      tags:
+        - LinkisJob
+      parameters:
+        - name: linkis_task_id
+          in: path
+          required: true
+          type: number
+          format: int64
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/experimentJob/{linkis_exec_id}/status:
+    get:
+      summary: Get Linkis Execution Job Status.
+      description: Get Flow Execution Msg From /api/entrance/${exec_id}/status
+      operationId: getLinkisJobStatus
+      tags:
+        - LinkisJob
+      parameters:
+        - name: linkis_exec_id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: OK
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Model create failed
+          schema:
+            $ref: '#/definitions/Error'
+  /di/v1/dssUserInfo:
+    get:
+      summary: Get DSS UserInfo
+      description: Get DSS UserInfo
+      operationId: getDssUserInfo
+      tags:
+        - DssUserInfo
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+        - name: workspaceId
+          in: query
+          required: true
+          type: string
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/DssUserInfo'
+        401:
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Get UserInfo Not Found
+          schema:
+            $ref: '#/definitions/Error'
+definitions:
+  Endpoint:
+    type: object
+    properties:
+      id:
+        type: string
+        description: the id of the endpoint
+      url:
+        type: string
+        description: the url of the endpoint
+
+  EndpointList:
+    type: object
+    properties:
+      endpoints:
+        type: array
+        items:
+          $ref: '#/definitions/Endpoint'
+
+
+  BasicModel:
+    type: object
+    properties:
+      model_id:
+        type: string
+        description: A unique id of the deep learning model.
+  BasicNewModel:
+    allOf:
+      - $ref: '#/definitions/BasicModel'
+      - properties:
+          location:
+            type: string
+            description: Location of the model to retrieve it.
+  Model:
+    allOf:
+      - $ref: '#/definitions/BasicNewModel'
+      - properties:
+          name:
+            type: string
+            description: The name of the deep learning model.
+          description:
+            type: string
+            description: Detailed description of deep learning model.
+          framework:
+            $ref: '#/definitions/Framework'
+          training:
+            $ref: '#/definitions/Training'
+          data_stores:
+            type: array
+            items:
+              $ref: '#/definitions/Datastore'
+          job_namespace:
+            type: string
+            description: job's namespace.
+          user_id:
+            type: string
+            description: user name.
+          pss:
+            type: string
+            description: Count of Param Server
+          ps_cpu:
+            type: string
+            description: Count of Param Server
+          ps_image:
+            type: string
+            description: Count of Param Server
+          ps_memory:
+            type: string
+            description: Count of Param Server
+          JobAlert:
+            type: string
+            description: Job Alert String.
+          JobType:
+            type: string
+            description: Job Type.
+          expRunId:
+            type: string
+            description: Experiment Run Id
+          expName:
+            type: string
+            description: Experiment Name
+          fileName:
+            type: string
+            description: Code File's Name
+          filePath:
+            type: string
+            description: Code File's Path
+          submission_timestamp:
+            type: string
+            description: submission timestamp of the job.
+          completed_timestamp:
+            type: string
+            description: completed timestamp of the job
+          TFosRequest:
+            $ref: '#/definitions/TFosRequest'
+            description: TFosRequest
+          proxy_user:
+            type: string
+            description: proxy user of job
+          job_params:
+            type: string
+            description: algorithm of training job 
+          api_type:
+            type: string
+            description: api type of xgboost or lightgbm
+          data_set:
+            $ref: '#/definitions/DataSet'
+          code_selector:
+            type: string
+            description: code_selector type file 
+          submit_id:
+            type: string
+            description: submit_id describe user submit 
+  Framework:
+    type: object
+    properties:
+      name:
+        type: string
+        description: the name of the deep learning framework (e.g. caffe, torch, tensorflow)
+      version:
+        type: string
+        description: the version of the specific framework to use.
+
+  DataSet:
+    type: object
+    properties:
+      training_data_path:
+        type: string
+        description: the path of training data set.
+      testing_data_path:
+        type: string
+        description: the path of testing data set
+      validation_data_path:
+        type: string
+        description: the path of validation data set.
+      training_label_path:
+        type: string
+        description: the path of training data label.
+      testing_label_path:
+        type: string
+        description: the path of testing data label.
+      validation_label_path:
+        type: string
+        description: the path of validation data label.
+
+  Training:
+    type: object
+    properties:
+      command:
+        type: string
+        description: the command invoked for running the training. This is specific to the DL framework
+      size:
+        type: string
+        description: the pre-configured deployment size to used for training. The is used instead of directly specifying CPU, GPU, memory and learners.
+      cpus:
+        type: number
+        format: double
+        description: Number of CPUs required
+      gpus:
+        type: number
+        format: double
+        description: Number of CPUs required
+      memory:
+        type: number
+        format: double
+        description: Amount of memory required
+      memory_unit:
+        type: string
+        description: |
+          Memory unit (default: MiB)
+        enum:
+          - MiB
+          - MB
+          - GiB
+          - GB
+        default: MiB
+      learners:
+        type: integer
+        format: int32
+        description: Number of learners required.
+      input_data:
+        type: array
+        description: Input data to the training, such as training data, pre-trained model. The input is specified as references to the data_store ids that contain the data.
+        items:
+          type: string
+          description: Reference to a data store id.
+      output_data:
+        type: array
+        description: Output data of the training, such as trained models. The output is specified as references to the data_store ids that contain the data.
+        items:
+          type: string
+          description: Reference to a data store id.
+      training_status:
+        $ref: '#/definitions/TrainingStatus'
+  Datastore:
+    type: object
+    properties:
+      data_store_id:
+        type: string
+        description: the id of the data store as defined in the manifest.
+      type:
+        type: string
+        description: the type of the data store as defined in the manifest.
+      connection:
+        type: object
+        additionalProperties:
+          type: string
+      Fields:
+        type: object
+        additionalProperties:
+          type: string
+  ModelList:
+    type: object
+    properties:
+      models:
+        type: array
+        items:
+          $ref: '#/definitions/Model'
+      pages:
+        type: integer
+      total:
+        type: integer
+  TrainingStatus:
+    type: object
+    properties:
+      status:
+        description: Status of the training.
+        type: string
+      status_description:
+        description: Description of the training status.
+        type: string
+      submitted:
+        description: |
+          Training submission timestamp (Format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z')
+        type: string
+      completed:
+        description: |
+          Training completion timestamp (Format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z')
+        type: string
+      status_message:
+        description: A human readable message description of the training status.
+        type: string
+      error_code:
+        description: A code identifying the cause of a status message.
+        type: string
+  TrainingUpdate:
+    type: object
+    properties:
+      status:
+        description: The status action to be executed on the training job. (Currently only `halt` is supported.)
+        type: string
+  Error:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      error:
+        type: string
+      msg:
+        type: string
+  v1LogLine:
+    type: object
+    properties:
+      meta:
+        "$ref": "#/definitions/v1MetaInfo"
+      line:
+        type: string
+  v1LogLinesList:
+    type: object
+    properties:
+      models:
+        type: array
+        items:
+          $ref: '#/definitions/v1LogLine'
+  v1MetaInfo:
+    type: object
+    properties:
+      training_id:
+        type: string
+        title: Unique id identifying the training job
+      user_id:
+        type: string
+        title: Unique id identifying the user
+      time:
+        type: number
+        format: int64
+        description: 'Time that the metric occured: representing the number of millisecond
+          since midnight January 1, 1970.'
+      rindex:
+        type: number
+        format: int64
+        title: sequential index
+  GetDashboardsResponse:
+    type: object
+    properties:
+      totalInstances:
+        type: string
+        description: total number of instances.
+      runningInstances:
+        type: string
+        description: number of running instances.
+      cpus:
+        type: string
+        description: number of cpu.
+  ProphecisExperiment:
+    type: object
+    properties:
+      id:
+        type: number
+        format: int64
+        description:  Experiment id.
+      exp_name:
+        type: string
+        description:  Experiment Name.
+      group_name:
+        type: string
+        description:  Experiment Name.
+      mlflow_exp_id:
+        type: string
+        description:  MLFlow Experiment ID.
+      exp_desc:
+        type: string
+        description: Experiment Description.
+      dss_project_id:
+        type: number
+        format: int64
+        description:  DSS Project ID.
+      dss_project_version_id:
+        type: number
+        format: int64
+        description:  DSS Project Version.
+      dss_bml_last_version:
+        type: string
+        description: DSS Flow BML Version
+      dss_workspace_id:
+        type: number
+        format: int64
+        description:  DSS Workspace ID.
+      dss_flow_id:
+        type: number
+        format: int64
+        description:  DSS Flow ID.
+      create_type:
+        type: string
+        description:  Create Type.
+      dss_dss_project_id:
+        type: number
+        format: int64
+        description: DSS DSS Project Id
+      dss_dss_project_name:
+        type: string
+        description: DSS DSS Project Name
+      dss_dss_flow_version:
+        type: string
+        description: DSS DSS Flow Version
+      dss_dss_flow_name:
+        type: string
+        description: DSS DSS Flow Name
+      dss_dss_flow_project_version_id:
+        type: string
+        description: DSS DSS Flow Project Version Id
+      exp_create_time:
+        type: string
+        format: date-time
+        description:  Timestamp of experiment create.
+      exp_modify_time:
+        type: string
+        format: date-time
+        description: Timestamp of experiment modify.
+      exp_create_user_id:
+        type: number
+        format: int64
+        description: User of experiment creator.
+      exp_modify_user_id:
+        type: number
+        format: int64
+        description: User of last experiment modifier.
+      create_user:
+        type: object
+        $ref: '#/definitions/User'
+        description: user entity
+      modify_user:
+        type: object
+        $ref: '#/definitions/User'
+        description: user entity
+      tag_list:
+        type: array
+        items:
+          $ref: '#/definitions/ProphecisExperimentTag'
+      enable_flag:
+        type: string
+        description: Flag of Delete.
+    required:
+      - exp_name
+      - exp_desc
+  TFosRequest:
+    type: object
+    properties:
+      py_file:
+        type: array
+        description:  PyFiles Fields.
+        items:
+          $ref: '#/definitions/Fields'
+      Archives:
+        type: array
+        description:  Archives Fields.
+        items:
+          $ref: '#/definitions/Fields'
+      EntryPoint:
+        $ref: '#/definitions/Fields'
+        description: EntryPoint Fields.
+      TensorflowEnv:
+        $ref: '#/definitions/Fields'
+        description: Tensorflow Env Files.
+      Executors:
+        type: string
+        description: Queue Setting Executor Number.
+      ExecutorCores:
+        type: string
+        description: Queue Setting Executor Cores.
+      ExecutorMemory:
+        type: string
+        description:  Queue Setting Executor Memory.
+      Queue:
+        type: string
+        description: Queue Setting.
+      DriverMemory:
+        type: string
+        description: Queue Setting Driver Memory.
+      Command:
+        type: string
+        description: Experiment Description.
+  Fields:
+    type: object
+    description: TFOS Archives & PyFile Fields
+    properties:
+      hdfs:
+        type: string
+        description:  HDFS Path.
+      resource_id:
+        type: string
+        description:  BML Resource ID.
+      version:
+        type: string
+        description: BML Resource Version.
+  ProphecisExperimentRequest:
+    type: object
+    properties:
+      exp_id:
+        type: number
+        format: int64
+        description:  Experiment id.
+      exp_name:
+        type: string
+        description:  Experiment Name.
+      group_name:
+        type: string
+        description:  Group Name.
+      exp_desc:
+        type: string
+        description: Experiment Description.
+      create_type:
+        default: "MLFlow"
+        type: string
+        description: experiment type, default "MLFlow", choose next value, "WTSS" "DSS" "MLFlow"
+      tag_list:
+        type: array
+        description: Experiment Tags
+        items:
+          $ref: "#/definitions/ProphecisExperimentTagPutBasicInfo"
+      dss_info:
+        type: object
+        $ref: '#/definitions/DSSInfo'
+    required:
+      - exp_name
+      - exp_desc
+  DSSInfo:
+    type: object
+    properties:
+      flow_name:
+        type: string
+      flow_version:
+        type: string
+      flow_id:
+        type: number
+        format: int64
+      project_name:
+        type: string
+      project_id:
+        type: number
+        format: int64
+
+  ProphecisExperiments:
+    type: object
+    properties:
+      total_page:
+        type: number
+        format: int64
+      total:
+        type: number
+        format: int64
+      page_number:
+        type: number
+        format: int64
+      page_size:
+        type: number
+        format: int64
+      experiments:
+        type: array
+        items:
+          $ref: '#/definitions/ProphecisExperiment'
+  ProphecisExperimentPutRequest:
+    type: object
+    properties:
+      experiment_id:
+        type: number
+        format: int64
+        description: ProphecisExperiment ID
+      flow_json:
+        type: string
+    required:
+      - experiment_id
+      - flow_json
+  ProphecisExperimentIDResponse:
+    type: object
+    properties:
+      id:
+        type: number
+        format: int64
+        description: ProphecisExperiment ID
+      exp_name:
+        type: string
+        description: ProphecisExperiment Name
+    required:
+      - id
+  ProphecisExperimentGetResponse:
+    type: object
+    properties:
+      prophecis_experiment:
+        $ref: '#/definitions/ProphecisExperiment'
+      flow_json:
+        type: string
+    required:
+      - prophecis_experiment
+      - flow_json
+  ProphecisExperimentTag:
+    type: object
+    properties:
+      id:
+        type: number
+        format: int64
+        description:  Experiment Tag ID.
+      exp_id:
+        type: number
+        format: int64
+        description:  Experiment ID.
+      exp_tag:
+        type: string
+        description:  Experiment Tag Name.
+      exp_tag_create_time:
+        type: string
+        format: date-time
+        description: Timestamp recorded when this Experiment Tag  was created.
+      exp_tag_create_user_id:
+        type: integer
+        description:  Creator recorded when this Experiment Tag  was created.
+      enable_flag:
+        type: string
+        description: Flag of Delete.
+    required:
+      - exp_tag
+  ProphecisExperimentTagPostRequest:
+    type: object
+    properties:
+      exp_id:
+        type: number
+        format: int64
+        description: experiment id.
+      exp_tag:
+        type: string
+        description:  Experiment Tag Name.
+    required:
+      - exp_tag
+  ProphecisExperimentTags:
+    type: object
+    properties:
+      page_number:
+        type: number
+        format: int64
+      page_size:
+        type: number
+        format: int64
+      experiment_tags:
+        type: array
+        items:
+          $ref: '#/definitions/ProphecisExperimentTag'
+  ProphecisExperimentRun:
+    type: object
+    properties:
+      id:
+        type: number
+        description: Experiment Exec ID.
+      exp_id:
+        type: number
+        format: int64
+        description:  Experiment ID.
+      dss_exec_id:
+        type: string
+        description: linkis flow exec id.
+      dss_flow_id:
+        type: number
+        format: int64
+        description:  DSS Flow ID.
+      dss_flow_last_version_id:
+        type: number
+        format: int64
+        description:  DSS Flow Version ID.
+      exp_exec_type:
+        type: string
+        description: Experiment Exec Type, include CLI/UI/DSS/Schedulis.
+      exp_exec_status:
+        type: string
+        description: Experiment Exec Type, include RUNNING/SCHEDULED/FINISHED/FAILED/KILLED.
+      exp_run_create_time:
+        type: string
+        format: date-time
+        description: Created Timestamp of Experiment Exec.
+      exp_run_end_time:
+        type: string
+        format: date-time
+        description: Timestamp of Experiment finished.
+      exp_run_create_user_id:
+        type: number
+        format: int64
+        description: User of experiment exec.
+      exp_run_modify_user_id:
+        type: number
+        format: int64
+        description: User of modify experiment exec.
+      experiment:
+        type: object
+        $ref: '#/definitions/ProphecisExperiment'
+        description: experiment entity.
+      user:
+        type: object
+        $ref: '#/definitions/User'
+        description: user entity
+      enable_flag:
+        type: string
+        description: Flag of Delete.
+    required:
+      - exp_id
+      - exp_exec_type
+  User:
+    properties:
+      id:
+        type: number
+        format: int64
+        description: Flag of Delete.
+      Name:
+        type: string
+        description: Flag of Delete.
+      Remarks:
+        type: string
+        description: Flag of Delete.
+    required:
+      - id
+  ProphecisExperimentRuns:
+    type: object
+    properties:
+      total_page:
+        type: number
+        format: int64
+      total:
+        type: number
+        format: int64
+      page_number:
+        type: number
+        format: int64
+      page_size:
+        type: number
+        format: int64
+      experiment_runs:
+        type: array
+        items:
+          $ref: '#/definitions/ProphecisExperimentRun'
+  LogResponse:
+    type: object
+    properties:
+      is_last_line:
+        type: string
+      logs:
+        type: array
+        items:
+          type: string
+  ProphecisExperimentRunRequest:
+    type: object
+    properties:
+      exp_exec_type:
+        type: string
+        description: Experiment Run type, Include CLI/UI/DSS/Schedulis.
+      flow_json:
+        type: string
+        description: Experiment Run type, Include CLI/UI/DSS/Schedulis.
+      run_date:
+        type: string
+        description: Experiment Run run date.
+    required:
+      - exp_exec_type
+  ProphecisExperimentRunResponse:
+    type: object
+    properties:
+      exp_exec_id:
+        type: number
+        description: Experiment Run ID
+  ProphecisExperimentRunsGetResponse:
+    type: object
+    properties:
+      prophecis_experiment_run:
+        $ref: '#/definitions/ProphecisExperimentRun'
+        description: prophecis_experiment_run entity
+      flow_json:
+        type: string
+    required:
+      - prophecis_experiment_run
+      - flow_json
+  ExperimentRunLogResponse:
+    type: object
+    properties:
+      id:
+        type: number
+        format: int64
+        description: prophecis_experiment_run entity
+      log:
+        type: array
+        items:
+          type: string
+      fromline:
+        type: number
+        format: int64
+        description: log from line number
+  ExperimentRunStatusResponse:
+    type: object
+    properties:
+      runId:
+        type: number
+        format: int64
+        description: experiment run id.
+      status:
+        type: string
+        description: experiment run status.
+  ExperimentRunLogRequest:
+    type: object
+    properties:
+      fromline:
+        type: number
+        format: int64
+        description: request log from line.
+      size:
+        type: number
+        format: int64
+        description: request log size.
+  CodeUploadResponse:
+    type: object
+    properties:
+      s3Path:
+        type: string
+        format: int64
+        description: S3 Path
+  ProphecisExperimentPutBasicInfo:
+    type: object
+    properties:
+      exp_name:
+        type: string
+        description:  Experiment Name.
+      exp_desc:
+        type: string
+        description: Experiment Description.
+      group_name:
+        type: string
+        description: Experiment group.
+      tag_list:
+        type: array
+        description: Experiment Tags
+        items:
+          $ref: "#/definitions/ProphecisExperimentTagPutBasicInfo"
+  ProphecisExperimentTagPutBasicInfo:
+    type: object
+    properties:
+      exp_id:
+        type: number
+        description: Experiment Id
+      exp_tag:
+        type: string
+        description: Experiment's Tag
+  ProphecisExportExperimentDssResponse:
+    type: object
+    properties:
+      resourceId:
+        type: string
+        description: Resource Id
+      version:
+        type: string
+        description: Version
+  ProphecisImportExperimentDssResponse:
+    type: object
+    properties:
+      expId:
+        type: number
+        format: int64
+        description: Experiment Id
+  DssUserInfo:
+    type: object
+    properties:
+      userName:
+        type: string
+        description: UserName
